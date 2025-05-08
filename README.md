@@ -26,7 +26,7 @@ EOF
 NOTE: I haven't tested this npm install yet. It may not work.
 
 ```bash
-npm install --save https://github.com/createthis/diffcalculia-ts
+npm install --save git+https://github.com/createthis/diffcalculia-ts.git
 ```
 
 ```typescript
