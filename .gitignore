@@ -1,0 +1,8 @@
+# typescript
+**/*.js
+
+# node
+node_modules
+
+# vim
+**/*.swp
