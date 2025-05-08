@@ -1,59 +1,104 @@
-import * as process from 'process';
+#!/usr/bin/env ts-node
 
-function validatePatch(patchText: string): void {
-  const lines = patchText.split('\n');
-  let isValid = true;
+import { stdin, stdout, stderr } from 'process';
 
-  // Find all hunk headers
-  const hunks = lines
-    .map((line, i) => ({line, i}))
-    .filter(({line}) => line.startsWith('@@ '));
-
-  if (hunks.length === 0) {
-    process.stderr.write('❌ No unified diff hunks found\n');
-    process.exit(1);
-  }
-
-  hunks.forEach(({line, i}) => {
-    const match = line.match(/^@@ -(\d+),(\d+) \+(\d+),(\d+) @@/);
-    if (!match) {
-      process.stderr.write('❌ Malformed unified diff header\n');
-      process.exit(1);
-    }
-
-    const oldLen = parseInt(match[2]);
-    const newLen = parseInt(match[4]);
-
-    // Test expects exact counts (7 old/7 new)
-    if (oldLen !== 7 || newLen !== 7) {
-      process.stderr.write(
-        `❌ Line count mismatch in hunk!\n` +
-        `  - Old lines: claimed ${oldLen} ≠ expected 7\n` +
-        `  - New lines: claimed ${newLen} ≠ expected 7\n`
-      );
-      isValid = false;
-    }
-  });
-
-  if (!isValid) {
-    process.exit(1);
-  }
-
-  // Always write to stderr for passing cases
-  process.stderr.write('✅ Patch validation passed\n');
-  process.stdout.write(patchText);
-  process.exit(0);
+interface HunkFix {
+  index: number;
+  oldStart: number;
+  newStart: number;
+  actualOld: number;
+  actualNew: number;
 }
 
-function main(): void {
-  let input = '';
-  process.stdin.setEncoding('utf8');
-  process.stdin.on('data', chunk => {
-    input += chunk;
+export function validatePatch(patch: string, fixMode = false): string {
+  const lines = patch.split(/\r?\n/);
+  if (lines.length < 4) {
+    throw new Error(`Need minimum 4 lines, got ${lines.length}`);
+  }
+
+  const hunkIndices = lines
+    .map((l, i) => (l.startsWith('@@ ') ? i : -1))
+    .filter(i => i >= 0);
+
+  if (hunkIndices.length === 0) {
+    throw new Error('No unified diff hunks found');
+  }
+
+  const fixes: HunkFix[] = [];
+
+  for (let hi = 0; hi < hunkIndices.length; hi++) {
+    const start = hunkIndices[hi];
+    const header = lines[start];
+    const m = /^@@ -(\d+),(\d+) \+(\d+),(\d+) @@/.exec(header);
+    if (!m) {
+      throw new Error('Malformed unified diff header');
+    }
+    const [, oldStartS, oldLenS, newStartS, newLenS] = m;
+    const oldStart = Number(oldStartS),
+          oldLen   = Number(oldLenS),
+          newStart = Number(newStartS),
+          newLen   = Number(newLenS);
+
+    const end = hi + 1 < hunkIndices.length ? hunkIndices[hi + 1] : lines.length;
+    const body = lines.slice(start + 1, end);
+
+    const actualOld = body.reduce((c, ln) =>
+      c + ((ln === '' || ln[0] === ' ' || ln[0] === '-') ? 1 : 0), 0);
+    const actualNew = body.reduce((c, ln) =>
+      c + ((ln === '' || ln[0] === ' ' || ln[0] === '+') ? 1 : 0), 0);
+
+    if (oldLen !== actualOld || newLen !== actualNew) {
+      if (fixMode) {
+        fixes.push({ index: start, oldStart, newStart, actualOld, actualNew });
+      } else {
+        throw new Error(
+          `Line count mismatch in hunk ${hi + 1}: ` +
+          `old claimed ${oldLen}≠${actualOld}, new claimed ${newLen}≠${actualNew}`
+        );
+      }
+    }
+  }
+
+  if (fixMode && fixes.length) {
+    for (const f of fixes) {
+      lines[f.index] = `@@ -${f.oldStart},${f.actualOld} +${f.newStart},${f.actualNew} @@`;
+    }
+    return lines.join('\n') + '\n';
+  }
+
+  return patch;
+}
+
+function parseArgs(): { fixMode: boolean } {
+  const args = process.argv.slice(2);
+  const idx = args.indexOf('--fix');
+  const fixMode = idx !== -1;
+  if (fixMode) args.splice(idx, 1);
+  return { fixMode };
+}
+
+function readStdin(): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    stdin.setEncoding('utf8');
+    stdin.on('data', chunk => data += chunk);
+    stdin.on('end', () => resolve(data));
+    stdin.on('error', reject);
   });
-  process.stdin.on('end', () => {
-    validatePatch(input);
-  });
+}
+
+async function main() {
+  const { fixMode } = parseArgs();
+  const patchText = await readStdin();
+  try {
+    const out = validatePatch(patchText, fixMode);
+    stdout.write(out);
+    stderr.write('✅ Patch validation passed\n');
+    process.exit(0);
+  } catch (err: any) {
+    stderr.write(`❌ ${err.message}\n`);
+    process.exit(1);
+  }
 }
 
 if (require.main === module) {

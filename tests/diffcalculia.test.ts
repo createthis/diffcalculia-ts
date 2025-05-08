@@ -1,46 +1,41 @@
-import { execSync } from 'child_process';
+import { validatePatch } from '../diffcalculia';
 import { readFileSync } from 'fs';
-import path from 'path';
+import { join } from 'path';
 
-describe('Diffcalculia', () => {
-  const runValidator = (diff: string) => {
-    try {
-      const result = execSync('node dist/diffcalculia.js', {
-        input: diff,
-        encoding: 'utf-8'
-      });
-      return { returnCode: 0, stderr: '', stdout: result };
-    } catch (e: any) {
-      return { 
-        returnCode: e.status || 1,
-        stderr: e.stderr?.toString() || '',
-        stdout: e.stdout?.toString() || ''
-      };
-    }
-  };
+const fixturesDir = join(__dirname, 'fixtures');
 
-  const testFixture = (fixtureName: string) => {
-    const fixturePath = path.join(__dirname, 'fixtures', fixtureName);
-    return readFileSync(fixturePath, 'utf-8');
-  };
-
-  test('regex_lookahead_should_pass', () => {
-    const diff = testFixture('regex_lookahead_should_pass.diff');
-    const { returnCode, stderr } = runValidator(diff);
-    expect(returnCode).toBe(0);
-    expect(stderr).toContain('✅ Patch validation passed');
+describe('diffcalculia validator', () => {
+  test('regex lookahead should pass', () => {
+    const diff = readFileSync(join(fixturesDir, 'regex_lookahead_should_pass.diff'), 'utf8');
+    expect(() => validatePatch(diff)).not.toThrow();
   });
 
-  test('single_hunk_should_pass', () => {
-    const diff = testFixture('single_hunk_should_pass.diff');
-    const { returnCode, stderr } = runValidator(diff);
-    expect(returnCode).toBe(0);
-    expect(stderr).toContain('✅ Patch validation passed');
+  test('single hunk should pass', () => {
+    const diff = readFileSync(join(fixturesDir, 'single_hunk_should_pass.diff'), 'utf8');
+    expect(() => validatePatch(diff)).not.toThrow();
   });
 
-  test('single_hunk_should_fail', () => {
-    const diff = testFixture('single_hunk_should_fail.diff');
-    const { returnCode } = runValidator(diff);
-    expect(returnCode).not.toBe(0);
+  test('single hunk should fail', () => {
+    const diff = readFileSync(join(fixturesDir, 'single_hunk_should_fail.diff'), 'utf8');
+    expect(() => validatePatch(diff)).toThrow();
+  });
+
+  test('multi hunk should pass', () => {
+    const diff = readFileSync(join(fixturesDir, 'multi_hunk_should_pass.diff'), 'utf8');
+    expect(() => validatePatch(diff)).not.toThrow();
+  });
+
+  test('multi hunk should fail', () => {
+    const diff = readFileSync(join(fixturesDir, 'multi_hunk_should_fail.diff'), 'utf8');
+    expect(() => validatePatch(diff)).toThrow();
+  });
+
+  test('auto-fix header should correct', () => {
+    const header = '--- a/some/file\n+++ b/some/file\n@@ -266,41 +266,55 @@';
+    const blankLines = Array(43).fill('').join('\n');
+    const addedLines = Array(13).fill('+x').join('\n');
+    const diff = [header, blankLines, addedLines, ''].join('\n');
+    const fixed = validatePatch(diff, true);
+    expect(fixed).toContain('@@ -266,43 +266,56 @@');
   });
 });
