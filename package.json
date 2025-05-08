@@ -16,6 +16,11 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "testMatch": ["**/tests/**/*.test.ts"]
+    "testMatch": [
+      "**/tests/**/*.test.ts"
+    ]
+  },
+  "dependencies": {
+    "tsx": "^4.19.4"
   }
 }

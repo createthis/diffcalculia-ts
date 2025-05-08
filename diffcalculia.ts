@@ -1,4 +1,4 @@
-#!/usr/bin/env ts-node
+#!/usr/bin/env -S node --import tsx/esm
 
 import { stdin, stdout, stderr } from 'process';
 
@@ -60,6 +60,7 @@ export function validatePatch(patch: string, fixMode = false): string {
   }
 
   if (fixMode && fixes.length) {
+    stderr.write('Let me fix that for you\n');
     for (const f of fixes) {
       lines[f.index] =
         `@@ -${f.oldStart},${f.actualOld} +${f.newStart},${f.actualNew} @@`;
