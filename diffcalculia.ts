@@ -11,7 +11,10 @@ interface HunkFix {
 }
 
 export function validatePatch(patch: string, fixMode = false): string {
-  const lines = patch.split(/\r?\n/);
+  // Normalize newlines and drop a trailing empty line (like Python splitlines())
+  const raw = patch.replace(/\r\n/g, '\n').split('\n');
+  const lines = raw[raw.length - 1] === '' ? raw.slice(0, -1) : raw;
+
   if (lines.length < 4) {
     throw new Error(`Need minimum 4 lines, got ${lines.length}`);
   }
@@ -19,13 +22,11 @@ export function validatePatch(patch: string, fixMode = false): string {
   const hunkIndices = lines
     .map((l, i) => (l.startsWith('@@ ') ? i : -1))
     .filter(i => i >= 0);
-
   if (hunkIndices.length === 0) {
     throw new Error('No unified diff hunks found');
   }
 
   const fixes: HunkFix[] = [];
-
   for (let hi = 0; hi < hunkIndices.length; hi++) {
     const start = hunkIndices[hi];
     const header = lines[start];
@@ -33,19 +34,18 @@ export function validatePatch(patch: string, fixMode = false): string {
     if (!m) {
       throw new Error('Malformed unified diff header');
     }
-    const [, oldStartS, oldLenS, newStartS, newLenS] = m;
-    const oldStart = Number(oldStartS),
-          oldLen   = Number(oldLenS),
-          newStart = Number(newStartS),
-          newLen   = Number(newLenS);
+    const oldStart = +m[1], oldLen = +m[2];
+    const newStart = +m[3], newLen = +m[4];
 
     const end = hi + 1 < hunkIndices.length ? hunkIndices[hi + 1] : lines.length;
     const body = lines.slice(start + 1, end);
 
     const actualOld = body.reduce((c, ln) =>
-      c + ((ln === '' || ln[0] === ' ' || ln[0] === '-') ? 1 : 0), 0);
+      c + ((ln === '' || ln[0] === ' ' || ln[0] === '-') ? 1 : 0)
+    , 0);
     const actualNew = body.reduce((c, ln) =>
-      c + ((ln === '' || ln[0] === ' ' || ln[0] === '+') ? 1 : 0), 0);
+      c + ((ln === '' || ln[0] === ' ' || ln[0] === '+') ? 1 : 0)
+    , 0);
 
     if (oldLen !== actualOld || newLen !== actualNew) {
       if (fixMode) {
@@ -61,7 +61,8 @@ export function validatePatch(patch: string, fixMode = false): string {
 
   if (fixMode && fixes.length) {
     for (const f of fixes) {
-      lines[f.index] = `@@ -${f.oldStart},${f.actualOld} +${f.newStart},${f.actualNew} @@`;
+      lines[f.index] =
+        `@@ -${f.oldStart},${f.actualOld} +${f.newStart},${f.actualNew} @@`;
     }
     return lines.join('\n') + '\n';
   }
@@ -69,7 +70,7 @@ export function validatePatch(patch: string, fixMode = false): string {
   return patch;
 }
 
-function parseArgs(): { fixMode: boolean } {
+function parseArgs() {
   const args = process.argv.slice(2);
   const idx = args.indexOf('--fix');
   const fixMode = idx !== -1;
