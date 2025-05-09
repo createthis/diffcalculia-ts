@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "diffcalculia": "./diffcalculia.ts"
+    "diffcalculia": "./dist/bin/diffcalculia.js"
   },
   "exports": {
     ".": {
