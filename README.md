@@ -2,7 +2,7 @@
 
 This is the typescript port of https://github.com/createthis/diffcalculia
 
-You may find it useful for including in MCP servers.
+You may find it useful for including in MCP servers. I'm building one here: https://github.com/createthis/diffcalculia_mcp
 
 # Getting Started
 
