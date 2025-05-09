@@ -1,17 +1,21 @@
 {
   "name": "diffcalculia-ts",
-  "version": "1.0.2",
-  "main": "dist/diffcalculia.js",
+  "version": "1.0.3",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "diffcalculia": "./diffcalculia.ts"
+  },
   "exports": {
     ".": {
-      "require": "./dist/diffcalculia.js",
-      "import": "./dist/diffcalculia.js"
+      "require": "./dist/index.js",
+      "import": "./dist/index.js"
     }
   },
   "scripts": {
     "test": "jest",
     "build": "tsc",
-    "prepublish": "npm run build"
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",
