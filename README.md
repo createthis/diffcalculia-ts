@@ -6,31 +6,15 @@ You may find it useful for including in MCP servers.
 
 # Getting Started
 
-```bash
-npm install
-```
-
-# Usage
-
-## CLI
-
-```bash
-chmod 700 diffcalculia.ts
-cat<<'EOF' | ./diffcalculia.ts --fix
-MY_DIFF_HERE
-EOF
-```
 
 ## Typescript
-
-NOTE: I haven't tested this npm install yet. It may not work.
 
 ```bash
 npm install --save git+https://github.com/createthis/diffcalculia-ts.git
 ```
 
 ```typescript
-import { validatePatch } from '../diffcalculia';
+import { validatePatch } from 'diffcalculia-ts';
 
 diff = "MY_DIFF_HERE";
 
@@ -53,3 +37,20 @@ try {
 ```bash
 npm test
 ```
+
+# Contrib
+```bash
+npm install
+```
+
+# Usage
+
+## CLI
+
+```bash
+chmod 700 ./bin/diffcalculia.ts
+cat<<'EOF' | ./bin/diffcalculia.ts --fix
+MY_DIFF_HERE
+EOF
+```
+
