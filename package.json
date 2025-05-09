@@ -2,6 +2,12 @@
   "name": "diffcalculia-ts",
   "version": "1.0.1",
   "main": "dist/diffcalculia.js",
+  "exports": {
+    ".": {
+      "require": "./dist/diffcalculia.js",
+      "import": "./dist/diffcalculia.js"
+    }
+  },
   "scripts": {
     "test": "jest",
     "build": "tsc",
