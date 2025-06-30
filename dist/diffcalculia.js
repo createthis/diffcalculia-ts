@@ -26,6 +26,10 @@ function validatePatch(patch, fixMode = false) {
         const newStart = +m[3], newLen = +m[4];
         const end = hi + 1 < hunkIndices.length ? hunkIndices[hi + 1] : lines.length;
         const body = lines.slice(start + 1, end);
+        // Trim trailing empty lines from the body
+        while (body.length > 0 && body[body.length - 1] === '') {
+            body.pop();
+        }
         const actualOld = body.reduce((c, ln) => c + ((ln === '' || ln[0] === ' ' || ln[0] === '-') ? 1 : 0), 0);
         const actualNew = body.reduce((c, ln) => c + ((ln === '' || ln[0] === ' ' || ln[0] === '+') ? 1 : 0), 0);
         if (oldLen !== actualOld || newLen !== actualNew) {
