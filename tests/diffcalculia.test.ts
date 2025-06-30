@@ -38,4 +38,10 @@ describe('diffcalculia validator', () => {
     const fixed = validatePatch(diff, true);
     expect(fixed).toContain('@@ -266,43 +266,56 @@');
   });
+
+  test('leading and trailing whitespace with correct header should not fix header', () => {
+    const diff = readFileSync(join(fixturesDir, 'leading_and_trailing_whitespace_should_pass.diff'), 'utf8');
+    const fixed = validatePatch(diff, true);
+    expect(fixed).toBe(diff);
+  });
 });
